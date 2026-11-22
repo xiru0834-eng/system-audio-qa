@@ -11,7 +11,7 @@ from question_review import parse_terms
 
 PRESET_FIELDS = ("company", "role", "round", "language", "answer_length", "job_description", "focus", "terms")
 PREFERENCE_FIELDS = {"provider", "dashscope_workspace", "dashscope_region", "font_size", "panel_x", "panel_y",
-                     "panel_always_on_top", "window_opacity", "audio_device"}
+                     "panel_width", "panel_height", "panel_always_on_top", "window_opacity", "audio_device"}
 CJK = re.compile(r"[\u3400-\u9fff]+")
 ASCII_WORD = re.compile(r"[a-z0-9][a-z0-9_+#.-]*", re.IGNORECASE)
 COMMON = {"怎么", "什么", "如何", "为何", "为什么", "一下", "这个", "那个", "介绍",

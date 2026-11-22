@@ -235,6 +235,7 @@ class AudioQA:
         self.resume_loading = False
         self.current_saved_interview_id = None
         self.saved_turn_snapshot = ()
+        self.panel_geometry_after = None
         self.session_metadata = {}
         self.settings_return_tab = None
         if self.memory is not None:
@@ -1535,7 +1536,7 @@ class AudioQA:
                                         wraplength=400,
                                         font=("Microsoft YaHei UI", 9))
         actions = tk.Frame(body, bg=ANSWER_BG)
-        self.listening_answer = self.text_box(body, 2, readonly=True)
+        self.listening_answer = self.text_box(body, 8, readonly=True)
         actions.pack(side="bottom", fill="x", before=self.listening_answer.master)
         caption_block.pack(side="bottom", fill="x", pady=(3, 4), before=self.listening_answer.master)
         self.listening_detail.pack(side="bottom", fill="x", pady=(0, 2), before=self.listening_answer.master)
@@ -1559,13 +1560,47 @@ class AudioQA:
         self.listening_stop = ttk.Button(actions, text="停止", style="Floating.TButton",
                                          command=self.stop_listening)
         self.listening_stop.pack(side="right")
-        panel.geometry(f"{round(430 * self.ui_scale)}x{round(300 * self.ui_scale)}")
-        panel.minsize(round(430 * self.ui_scale), round(300 * self.ui_scale))
         work_area = wintypes.RECT()
         if ctypes.windll.user32.SystemParametersInfoW(0x0030, 0, ctypes.byref(work_area), 0):
-            x = max(work_area.left, work_area.right - round(432 * self.ui_scale))
-            y = max(work_area.top, work_area.bottom - round(343 * self.ui_scale))
-            panel.geometry(f"+{x}+{y}")
+            work_width = max(1, work_area.right - work_area.left)
+            work_height = max(1, work_area.bottom - work_area.top)
+            minimum_width = min(round(480 * self.ui_scale), work_width)
+            minimum_height = min(round(420 * self.ui_scale), work_height)
+            width = min(max(round(self.preferences.get("panel_width", 620) * self.ui_scale),
+                            minimum_width), work_width)
+            height = min(max(round(self.preferences.get("panel_height", 560) * self.ui_scale),
+                             minimum_height), work_height)
+            x = max(work_area.left, work_area.right - width - round(16 * self.ui_scale))
+            y = max(work_area.top, work_area.bottom - height - round(16 * self.ui_scale))
+            panel.minsize(minimum_width, minimum_height)
+            panel.geometry(f"{width}x{height}+{x}+{y}")
+        else:
+            panel.geometry(f"{round(620 * self.ui_scale)}x{round(560 * self.ui_scale)}")
+            panel.minsize(round(480 * self.ui_scale), round(420 * self.ui_scale))
+        panel.bind("<Configure>", self.on_listening_panel_configure, add="+")
+
+    def on_listening_panel_configure(self, event):
+        if event.widget is not self.listening_panel or not self.listening_panel.winfo_viewable():
+            return
+        if self.panel_geometry_after is not None:
+            self.root.after_cancel(self.panel_geometry_after)
+        self.panel_geometry_after = self.root.after(500, self.save_listening_panel_geometry)
+
+    def save_listening_panel_geometry(self):
+        self.panel_geometry_after = None
+        panel = self.listening_panel
+        if panel is None or not panel.winfo_exists():
+            return
+        self.preferences["panel_width"] = round(panel.winfo_width() / self.ui_scale)
+        self.preferences["panel_height"] = round(panel.winfo_height() / self.ui_scale)
+        if self.memory is not None:
+            try:
+                self.memory.save_preferences({
+                    "panel_width": self.preferences["panel_width"],
+                    "panel_height": self.preferences["panel_height"],
+                })
+            except sqlite3.Error:
+                self.status.configure(text="浮窗已调整，但尺寸无法保存到本机。")
 
     def show_listening_panel(self):
         if self.listening_panel is None:
@@ -2699,6 +2734,8 @@ class AudioQA:
 
     def close(self):
         self.root.after_cancel(self.tick_timer)
+        if self.panel_geometry_after is not None:
+            self.root.after_cancel(self.panel_geometry_after)
         self.cancel_request()
         with self.capture_change:
             self.closing = True

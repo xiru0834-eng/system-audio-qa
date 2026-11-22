@@ -7,6 +7,8 @@ from unittest.mock import Mock, patch
 import tkinter as tk
 
 from main import AudioQA, select_startup_provider
+from self_test import wait_for
+from windows_probe import prevent_test_activation
 
 
 class LiveCaptionAppTests(unittest.TestCase):
@@ -115,12 +117,32 @@ class LiveCaptionAppTests(unittest.TestCase):
         self.app.update_listening_panel()
         self.app.append_answer_text(self.app.answer, answer[160:])
         self.app.update_listening_panel()
+        prevent_test_activation(self.app.listening_panel)
+        self.app.listening_panel.deiconify()
+        self.root.update()
         self.app.listening_panel.update_idletasks()
 
         self.assertEqual(self.app.listening_question.cget("text"), "当前题目")
         self.assertEqual(self.app.listening_answer.get("1.0", "end-1c"), answer)
         self.assertEqual(self.app.listening_caption.cget("text"), "字幕：最近字幕")
-        self.assertEqual(self.app.listening_panel.winfo_width(), round(430 * self.app.ui_scale))
+        self.assertEqual(self.app.listening_panel.winfo_width(), round(620 * self.app.ui_scale))
+        self.assertEqual(self.app.listening_panel.winfo_height(), round(560 * self.app.ui_scale))
+        self.assertGreaterEqual(self.app.listening_answer.winfo_height(), round(170 * self.app.ui_scale))
+
+    def test_floating_answer_window_size_is_saved_for_the_next_launch(self):
+        self.app.build_listening_panel()
+        prevent_test_activation(self.app.listening_panel)
+        self.app.listening_panel.deiconify()
+        self.app.listening_panel.geometry(f"{round(840 * self.app.ui_scale)}x{round(720 * self.app.ui_scale)}")
+        self.root.update()
+        wait_for(
+            lambda: self.app.memory.load_preferences().get("panel_width") == 840
+            and self.app.memory.load_preferences().get("panel_height") == 720,
+            self.root.update,
+        )
+        preferences = self.app.memory.load_preferences()
+        self.assertEqual(preferences["panel_width"], 840)
+        self.assertEqual(preferences["panel_height"], 720)
 
     def test_length_choice_survives_preset_and_is_locked_for_the_round(self):
         field = self.app.draft["answer_length"]

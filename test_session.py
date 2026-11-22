@@ -157,11 +157,13 @@ class SessionTests(unittest.TestCase):
             path = Path(tmp) / "memory.db"
             store = MemoryStore(path)
             store.save_preferences({"dashscope_workspace": "workspace-123", "dashscope_region": "北京",
+                                    "panel_width": 840, "panel_height": 720,
                                     "api_key": "must not be stored here"})
             store.close()
             reopened = MemoryStore(path)
             self.assertEqual(reopened.load_preferences(), {
                 "dashscope_workspace": "workspace-123", "dashscope_region": "北京",
+                "panel_width": 840, "panel_height": 720,
             })
             reopened.close()
 

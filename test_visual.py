@@ -103,7 +103,9 @@ def measure(folder, scales):
                 ctypes.windll.dwmapi.DwmFlush()
                 floating = capture(app.listening_panel, folder, f"dpi{percent}-floating")
                 floating.update(answer_height=app.listening_answer.winfo_height(),
-                                answer_text=app.listening_answer.get("1.0", "end-1c"))
+                                answer_text=app.listening_answer.get("1.0", "end-1c"),
+                                logical_size=[round(app.listening_panel.winfo_width() / scale),
+                                              round(app.listening_panel.winfo_height() / scale)])
                 result.append(floating)
 
                 app.listening_panel.withdraw()
