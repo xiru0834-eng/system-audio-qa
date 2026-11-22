@@ -1,11 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+import tkinterdnd2
+
+
+tkdnd_folder = Path(tkinterdnd2.__file__).parent / 'tkdnd' / 'win-x64'
+tkdnd_files = [str(path) for path in tkdnd_folder.iterdir() if path.is_file()]
+tkdnd_binary = [path for path in tkdnd_files if path.lower().endswith('.dll')]
+tkdnd_data = [path for path in tkdnd_files if not path.lower().endswith('.dll')]
+
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
-    datas=[('PILOT_CASES.md', '.')],
+    binaries=[(path, 'tkinterdnd2/tkdnd/win-x64') for path in tkdnd_binary],
+    datas=[('PILOT_CASES.md', '.')]
+          + [(path, 'tkinterdnd2/tkdnd/win-x64') for path in tkdnd_data],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

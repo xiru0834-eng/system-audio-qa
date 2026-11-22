@@ -105,6 +105,53 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(store.load_preset(), {"company": "A", "role": "Dev"})
             store.close()
 
+    def test_personal_resume_is_saved_only_after_confirmation_and_survives_reopen(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "memory.db"
+            store = MemoryStore(path)
+            self.assertIsNone(store.load_resume())
+            store.save_resume("Resume.docx", "Reviewed resume text")
+            store.close()
+
+            reopened = MemoryStore(path)
+            self.assertEqual(reopened.load_resume(), {
+                "name": "Resume.docx",
+                "text": "Reviewed resume text",
+            })
+            reopened.save_resume("Resume-v2.pdf", "Updated reviewed text")
+            reopened.close()
+
+            reopened = MemoryStore(path)
+            self.assertEqual(reopened.load_resume(), {
+                "name": "Resume-v2.pdf",
+                "text": "Updated reviewed text",
+            })
+            reopened.close()
+
+    def test_interview_history_is_empty_until_a_session_is_explicitly_saved(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "memory.db"
+            store = MemoryStore(path)
+            self.assertEqual(store.list_interviews(), [])
+            item = store.save_interview(
+                {"company": "Test Co", "role": "AI Engineer", "round": "二面"},
+                [{"question": "怎么验证？", "answer": "我会先核对状态。"}],
+            )
+            self.assertGreater(item, 0)
+            store.close()
+
+            reopened = MemoryStore(path)
+            records = reopened.list_interviews()
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0]["id"], item)
+            self.assertEqual(records[0]["company"], "Test Co")
+            self.assertEqual(records[0]["role"], "AI Engineer")
+            self.assertEqual(records[0]["round"], "二面")
+            self.assertEqual(records[0]["turns"], [
+                {"question": "怎么验证？", "answer": "我会先核对状态。", "source": "", "status": ""},
+            ])
+            reopened.close()
+
     def test_workspace_and_region_preferences_persist_without_secrets(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "memory.db"

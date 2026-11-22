@@ -468,6 +468,8 @@ def verify_one_click_listening():
                       shortcut_path=folder / "hotkey.json", memory_path=":memory:")
         try:
             app.provider.set("DeepSeek")
+            assert app.dnd_ready
+            dnd_version = root.tk.call("package", "present", "tkdnd")
             app.key.insert(0, "local-smoke-test")
             original_build = app.build_listening_panel
 
@@ -515,7 +517,8 @@ def verify_one_click_listening():
             app.listening_stop.invoke()
             assert app.capture is None and app.hotkey is None and capture.stream is None
             assert not app.listening_panel.winfo_viewable()
-            return {"connect_ms": connection_ms, "real_loopback_frames": frames, "peak_pcm": peak, "microphone_selected": False,
+            return {"connect_ms": connection_ms, "real_loopback_frames": frames, "peak_pcm": peak,
+                    "tkdnd_version": dnd_version, "microphone_selected": False,
                     "hotkey": "registered Windows Shift+Z with a posted hotkey message",
                     "api": "mock transcription and streamed response", "answer_in_panel": True,
                     "answer_characters": len(answer), "answer_chunks": len(answer_parts),

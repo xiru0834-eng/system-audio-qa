@@ -4,6 +4,7 @@ import re
 import sqlite3
 from collections import deque
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from question_review import parse_terms
 
@@ -155,6 +156,9 @@ class MemoryStore:
                         "id INTEGER PRIMARY KEY CHECK(id = 1), fields TEXT NOT NULL)")
         self.db.execute("CREATE TABLE IF NOT EXISTS preference ("
                         "key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        self.db.execute("CREATE TABLE IF NOT EXISTS saved_interview ("
+                        "id INTEGER PRIMARY KEY, saved_at TEXT NOT NULL, company TEXT NOT NULL, "
+                        "role TEXT NOT NULL, round TEXT NOT NULL, turns TEXT NOT NULL)")
         self.db.commit()
 
     def list(self):
@@ -185,7 +189,7 @@ class MemoryStore:
 
     def load_preferences(self):
         rows = self.db.execute("SELECT key, value FROM preference").fetchall()
-        return {key: json.loads(value) for key, value in rows}
+        return {key: json.loads(value) for key, value in rows if key in PREFERENCE_FIELDS}
 
     def save_preferences(self, values):
         payload = {key: value for key, value in values.items() if key in PREFERENCE_FIELDS}
@@ -195,6 +199,51 @@ class MemoryStore:
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                 [(key, json.dumps(value, ensure_ascii=False)) for key, value in payload.items()],
             )
+
+    def load_resume(self):
+        row = self.db.execute("SELECT value FROM preference WHERE key = 'personal_resume'").fetchone()
+        return json.loads(row[0]) if row is not None else None
+
+    def save_resume(self, name, text):
+        name = str(name).strip()
+        text = str(text).strip()
+        if not name or not text:
+            raise ValueError("简历名称和正文不能为空。")
+        payload = json.dumps({"name": name, "text": text}, ensure_ascii=False)
+        with self.db:
+            self.db.execute("INSERT INTO preference(key, value) VALUES ('personal_resume', ?) "
+                            "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (payload,))
+
+    def save_interview(self, fields, turns, item=None):
+        company = str(fields.get("company", "")).strip()
+        role = str(fields.get("role", "")).strip()
+        round_name = str(fields.get("round", "")).strip()
+        stored_turns = [
+            {**{key: str(turn.get(key, "")) for key in ("question", "answer", "source", "status")},
+             **{key: str(turn[key]) for key in ("raw_caption",) if key in turn}}
+            for turn in turns
+        ]
+        saved_at = datetime.now().astimezone().isoformat(timespec="seconds")
+        encoded = json.dumps(stored_turns, ensure_ascii=False)
+        with self.db:
+            if item is not None:
+                self.db.execute("UPDATE saved_interview SET turns = ? WHERE id = ?", (encoded, item))
+                return item
+            cursor = self.db.execute(
+                "INSERT INTO saved_interview(saved_at, company, role, round, turns) VALUES (?, ?, ?, ?, ?)",
+                (saved_at, company, role, round_name, encoded),
+            )
+        return cursor.lastrowid
+
+    def list_interviews(self):
+        rows = self.db.execute(
+            "SELECT id, saved_at, company, role, round, turns FROM saved_interview ORDER BY id DESC"
+        ).fetchall()
+        return [
+            {"id": item, "saved_at": saved_at, "company": company, "role": role,
+             "round": round_name, "turns": json.loads(turns)}
+            for item, saved_at, company, role, round_name, turns in rows
+        ]
 
     def close(self):
         self.db.close()
