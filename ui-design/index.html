@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MS · 面试工作台</title>
+  <link rel="stylesheet" href="style.css?v=7">
+  <script src="prototype.js?v=5" defer></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="monogram" aria-hidden="true">ms</span><strong>面试工作台</strong></div>
+      <nav aria-label="主导航">
+        <button type="button" data-go="prepare" aria-current="page"><span class="nav-icon icon-prepare" aria-hidden="true"></span>面试准备</button>
+        <button type="button" data-go="facts"><span class="nav-icon icon-facts" aria-hidden="true"></span>资料库</button>
+        <button type="button" data-go="answer"><span class="nav-icon icon-answer" aria-hidden="true"></span>练习问答</button>
+        <button type="button" data-go="review"><span class="nav-icon icon-review" aria-hidden="true"></span>本场复盘</button>
+      </nav>
+      <div class="sidebar-foot">浏览器原型</div>
+    </aside>
+    <div class="workbench">
+      <header class="topbar">
+        <span id="notice" class="notice" role="status"></span>
+        <span class="audio-badge">音频采集关闭</span>
+        <span id="session-state" class="state" data-active="false"><span class="dot"></span><span id="session-label">未开始练习</span></span>
+      </header>
+      <main id="main" tabindex="-1">
+        <section class="view" id="prepare">
+          <div class="view-head"><h1>面试准备</h1></div>
+          <div class="columns prepare-columns">
+            <div class="flow">
+              <section class="work-section">
+                <div class="section-heading"><h2>面试信息</h2><span class="meta">选填</span></div>
+                <div class="fields">
+                  <label>公司<input id="company" placeholder="输入公司名称" maxlength="60"></label>
+                  <label>岗位<input id="role" placeholder="输入岗位名称" maxlength="60"></label>
+                  <label>轮次<select id="round"><option value="">选择轮次</option><option>初面</option><option>复面</option><option>终面</option><option>HR 面</option></select></label>
+                  <label>回答语言<select id="language"><option>中文</option><option>English</option><option>中英对照</option></select></label>
+                </div>
+              </section>
+              <section class="work-section">
+                <div class="section-heading"><h2>背景资料</h2><button class="link-button" type="button" data-jump="facts">打开资料库 <span aria-hidden="true">→</span></button></div>
+                <div class="materials" id="materials"></div>
+              </section>
+            </div>
+            <aside class="preview session-preview">
+              <h2>本场概览</h2>
+              <div class="preview-target"><strong id="preview-job"></strong><p id="preview-company" hidden></p></div>
+              <dl class="summary">
+                <div><dt>回答语言</dt><dd id="preview-language"></dd></div>
+                <div><dt>选用资料</dt><dd id="preview-materials"></dd></div>
+                <div><dt>出题方式</dt><dd>预设文字题</dd></div>
+              </dl>
+              <button type="button" class="button primary start-button" id="start"><span id="start-text">开始练习</span><span class="start-arrow" aria-hidden="true">→</span></button>
+              <p class="audio-note">Windows 版点「开始监听」即可打开小窗。网页提供文字练习。</p>
+              <button type="button" class="link-button preview-listener" popovertarget="listener-preview">预览监听小窗 <span aria-hidden="true">↗</span></button>
+            </aside>
+          </div>
+        </section>
+        <section class="view" id="facts" hidden>
+          <div class="view-head">
+            <div><h1>资料库</h1><p>可用示例资料体验来源核对。</p></div>
+            <button class="button" type="button" data-jump="prepare">返回面试准备</button>
+          </div>
+          <div class="columns">
+            <div class="flow"><section class="work-section"><h2>资料列表</h2><div id="fact-list"></div></section></div>
+            <aside class="preview" id="fact-source" aria-live="polite"></aside>
+          </div>
+        </section>
+        <section class="view" id="answer" hidden>
+          <div class="view-head">
+            <div><h1>练习问答</h1><p id="answer-context"></p></div>
+            <div class="action-row">
+              <button class="button" id="compact" type="button" aria-pressed="false">紧凑视图</button>
+              <button class="button" id="end-practice" type="button" hidden>结束练习</button>
+            </div>
+          </div>
+          <div class="columns answer-columns">
+            <div class="flow">
+              <section class="work-section question-section">
+                <div class="section-heading">
+                  <h2>当前问题</h2>
+                  <fieldset class="segments">
+                    <legend class="visually-hidden">回答模式</legend>
+                    <label><input type="radio" name="mode" value="快速" checked><span>快速</span></label>
+                    <label><input type="radio" name="mode" value="深度"><span>深度</span></label>
+                  </fieldset>
+                </div>
+                <label class="visually-hidden" for="transcript">问题文字</label>
+                <textarea id="transcript" rows="2" placeholder="选择一道练习题，或在这里编辑题目"></textarea>
+                <div class="section-heading after-input"><span id="answer-status" class="meta" role="status"></span><button class="link-button" id="reanswer" type="button">用当前问题重答</button></div>
+              </section>
+              <section class="work-section response" id="response" data-waiting="true" aria-live="polite">
+                <h2>回答首句</h2>
+                <p class="first-answer" id="first-answer">等待问题</p>
+                <div id="answer-detail" hidden><h3>展开要点</h3><ol id="answer-points"></ol></div>
+              </section>
+            </div>
+            <aside class="preview answer-preview">
+              <h2>练习题</h2>
+              <fieldset class="question-list" id="question-list"><legend class="visually-hidden">选择练习题</legend></fieldset>
+              <button class="button primary start-button" id="trigger" type="button">试一道题 <kbd>Shift+Z</kbd></button>
+              <button class="button start-button" id="go-prepare" type="button" data-jump="prepare">去面试准备</button>
+              <div class="preview-rule" id="source-rule" hidden>
+                <h3>回答依据</h3><p id="answer-source"></p>
+                <button class="link-button" id="open-answer-source" type="button" data-jump="facts" hidden>查看资料 <span aria-hidden="true">→</span></button>
+              </div>
+            </aside>
+          </div>
+        </section>
+        <section class="view" id="review" hidden>
+          <div class="view-head">
+            <div><h1>本场复盘</h1><p id="review-context"></p></div>
+            <button class="button" id="saved-filter" type="button" aria-pressed="false">只看收藏</button>
+          </div>
+          <div class="columns">
+            <div class="flow" id="review-list"></div>
+            <aside class="preview">
+              <h2>练习统计</h2>
+              <dl class="summary">
+                <div><dt>本场答题</dt><dd id="turn-count">0</dd></div>
+                <div><dt>已收藏</dt><dd id="saved-count">0</dd></div>
+              </dl>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <aside id="listener-preview" popover aria-labelledby="listener-title">
+    <p class="listener-caption">Windows 小窗预览</p>
+    <div class="section-heading"><h2 id="listener-title">正在监听系统音频</h2><kbd>Shift+Z</kbd></div>
+    <p>对方说完问题后，按快捷键识别最近音频。</p>
+    <button class="button" type="button" popovertarget="listener-preview" popovertargetaction="hide">关闭预览</button>
+  </aside>
+</body>
+</html>
